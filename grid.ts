@@ -33,6 +33,7 @@ export class Grid {
   }
 
   printGrid(): void {
+    console.log('\n');
     for (let row: number = 0; row < this.size; row++) {
       // Generate each row's text as `grid[row][col]`
       const rowText = this.gridItems[row]
@@ -45,6 +46,7 @@ export class Grid {
         console.log("-".repeat(rowText.length));
       }
     }
+    console.log("\n");
   }
 
   printDemoGrid(): void {

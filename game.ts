@@ -11,7 +11,6 @@ export class Game {
   private playerOCoords: CoordinateGroup;
   private playerTurn: CellValueType;
   private winCoordinates: CoordinateGroup[];
-  private prompt: string;
   private grid: Grid;
   private rl: readline.Interface;
   public inputRow: number | null;
@@ -64,7 +63,6 @@ export class Game {
         [2, 0],
       ],
     ];
-    this.prompt = `It is now ${this.playerTurn}'s turn.\n`;
     this.grid = new Grid();
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -74,60 +72,70 @@ export class Game {
     this.inputCol = null;
   }
 
-  startGame() {
+  async startGame(): Promise<void> {
     console.log("A new Tic-Tac-Toe game has begun!\n");
     this.grid.printDemoGrid();
-    console.log("\nAs the board seen above, each square has a 2 digits defining it's position. \nWhen it is your turn, enter your desired position as so --> 'row col'\n")
+    console.log("\nAs the board seen above, each square has a 2 digits defining it's position. \n\nWhen it is your turn, enter your desired position as so --> 'row col'\n");
+    console.log("-".repeat(process.stdout.columns));
     for (let i = 0; i < 9; i++) {
-      if (this.playerTurn === "X") {
-        // this.getInput();
-        (async () => {
-          try {
-            await this.getInput();
-          } catch (err) {
-            console.error("Invalid input.");
-          } finally {
-            this.close(); // Close the readline interface here
+      this.grid.printGrid();
+      try {
+        if (this.playerTurn === "X") {
+          this.xTurn(...(await this.getInput()));
+          if (this.checkWin(this.playerXCoords, this.winCoordinates)) {
+            this.displayWin('X');
+            break;
           }
-        })();
-        console.log('input received');
-        this.xTurn();
-        this.checkWin();
-      }
-      if (this.playerTurn === "O") {
-        this.getInput();
-        this.oTurn();
-        this.checkWin();
+        } else if (this.playerTurn === "O") {
+          this.oTurn(...await this.getInput());
+          if (this.checkWin(this.playerOCoords, this.winCoordinates)) {
+            this.displayWin('O');
+            break;
+          }
+        }
+      } catch (error) {
+        console.error("Invalid input.");
+        i--;
       }
     }
     if (this.grid.checkFullGrid()) {
       this.displayTie();
     }
+
+    this.rl.close();
   }
 
-  async getInput(): Promise<void> {
+  async getInput(): Promise<[number, number]> {
     return new Promise((resolve, reject) => {
-      this.rl.question(this.prompt, (answer: string) => {
-        const [row, col] = answer.split(" ").map(Number);
+      this.rl.question(
+        `It is now ${this.playerTurn}'s turn.\n`,
+        (answer: string) => {
+          const [row, col] = answer.split(" ").map(Number);
 
-        if (
-          !isNaN(row) &&
-          !isNaN(col) &&
-          row >= 0 &&
-          row <= 2 &&
-          col >= 0 &&
-          col <= 2
-        ) {
-          this.inputRow = row;
-          this.inputCol = col;
-          resolve(); // Resolves when valid input is provided
-        } else {
-          console.error(
-            "Invalid input. Please enter two numbers separated by a space."
-          );
-          reject(new Error("Invalid input."));
+          if (!isNaN(row) &&
+              !isNaN(col) &&
+              row >= 0 &&
+              row <= 2 &&
+              col >= 0 &&
+              col <= 2) {
+            resolve([row, col]); // Resolves when valid input is provided
+          }
+          // else if (this.grid.gridItems[row][col].isValid() !== true) {
+          //   reject(
+          //     new Error(
+          //       "Cell is already occupied. Please choose another location."
+          //     )
+          //   );
+          // }
+          else {
+            reject(
+              new Error(
+                "Invalid input. Please enter two numbers separated by a space."
+              )
+            );
+          }
         }
-      });
+      );
     });
   }
 
@@ -135,57 +143,45 @@ export class Game {
     this.rl.close(); // Explicitly close the readline interface
   }
 
-  xTurn() {
-    if (
-      typeof this.inputRow === "number" &&
-      typeof this.inputCol === "number"
-    ) {
-      if (this.grid.gridItems[this.inputRow][this.inputCol].isValid()) {
-        this.grid.gridItems[this.inputRow][this.inputCol].value = "X";
-        this.grid.printGrid();
-        this.playerXCoords.push([this.inputRow, this.inputCol]);
-        this.playerTurn = "O";
-      }
+  xTurn(row: number, col: number) {
+    if (this.grid.gridItems[row][col].isValid()) {
+      this.grid.gridItems[row][col].value = "X";
+      this.playerXCoords.push([row, col]);
+      this.playerTurn = "O";
+    } else {
+      console.error("\nCell is already occupied. Please choose another location.\n");
     }
   }
 
-  oTurn() {
-    if (
-      typeof this.inputRow === "number" &&
-      typeof this.inputCol === "number"
-    ) {
-      if (this.grid.gridItems[this.inputRow][this.inputCol].isValid()) {
-        this.grid.gridItems[this.inputRow][this.inputCol].value = "O";
-        this.grid.printGrid();
-        this.playerOCoords.push([this.inputRow, this.inputCol]);
-        this.playerTurn = "X";
-      }
+  oTurn(row: number, col: number) {
+    if (this.grid.gridItems[row][col].isValid()) {
+      this.grid.gridItems[row][col].value = "O";
+      this.playerOCoords.push([row, col]);
+      this.playerTurn = "X";
+    } else {
+      console.error(
+        "\nCell is already occupied. Please choose another location.\n"
+      );
     }
   }
 
-  checkWin() {
-    for (let i = 0; i < this.winCoordinates.length; i++) {
-      if (this.winCoordinates[i] === this.playerXCoords.sort()) {
-        this.displayWin("X");
-        break;
-      } else if (this.winCoordinates[i] === this.playerOCoords.sort()) {
-        this.displayWin("O");
-        break;
-      }
-    }
+  checkWin(playerCoords: [number, number][], winCoords: [number, number][][]): boolean {
+    return winCoords.some(win =>
+      win.every(winCoord =>
+        playerCoords.some(
+          playerCoord =>
+            playerCoord[0] === winCoord[0] && playerCoord[1] === winCoord[1]
+        )
+      )
+    );
   }
+
 
   displayWin(winner?: CellValueType) {
-    console.log(`${winner} has won the game!`);
+      console.log("\x1b[32m", `\n${winner} has won the game!`);
   }
 
   displayTie() {
-    console.log("Game is a tie.");
+    console.log("\x1b[33m", "\nGame is a tie.");
   }
 }
-
-let game = new Game();
-// console.log(game);
-// game.displayTie();
-// game.displayWin();
-game.startGame();
