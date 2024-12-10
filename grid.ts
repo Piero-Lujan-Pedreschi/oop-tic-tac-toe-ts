@@ -2,10 +2,8 @@ import { Cell } from "./cell";
 
 export class Grid {
   gridItems: Cell[][] = [];
-  private isGridFull: boolean;
   constructor(private size: number = 3) {
     this.gridItems = this.initializeGrid(size);
-    this.isGridFull = false;
   }
 
   initializeGrid(size: number): Cell[][] {
@@ -19,17 +17,15 @@ export class Grid {
     return this.gridItems;
   }
 
-  checkFullGrid() {
+  isGridFull(): boolean {
     for (let row: number = 0; row < this.size; row++) {
       for (let col: number = 0; col < this.size; col++) {
         if (this.gridItems[row][col].isValid() === true) {
-          this.isGridFull = false;
-          return this.isGridFull;
+          return false;
         }
       }
     }
-    this.isGridFull = true;
-    return this.isGridFull;
+    return true;
   }
 
   printGrid(): void {
@@ -64,9 +60,3 @@ export class Grid {
     }
   }
 }
-
-// let grid = new Grid();
-// console.log(grid);
-// grid.updateGrid();
-// console.log(grid.checkFullGrid());
-

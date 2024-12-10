@@ -6,22 +6,20 @@ export type Coordinate = [number, number];
 export type CoordinateGroup = Coordinate[];
 
 export class Game {
-  //   private winner: CellValueType;
   private playerXCoords: CoordinateGroup;
   private playerOCoords: CoordinateGroup;
   private playerTurn: CellValueType;
-  private winCoordinates: CoordinateGroup[];
+  private winningCoordinates: CoordinateGroup[];
   private grid: Grid;
   private rl: readline.Interface;
   public inputRow: number | null;
   public inputCol: number | null;
 
   constructor() {
-    // this.winner = null;
     this.playerXCoords = [];
     this.playerOCoords = [];
     this.playerTurn = "X";
-    this.winCoordinates = [
+    this.winningCoordinates = [
       [
         [0, 0],
         [0, 1],
@@ -72,23 +70,20 @@ export class Game {
     this.inputCol = null;
   }
 
-  async startGame(): Promise<void> {
-    console.log("A new Tic-Tac-Toe game has begun!\n");
-    this.grid.printDemoGrid();
-    console.log("\nAs the board seen above, each square has a 2 digits defining it's position. \n\nWhen it is your turn, enter your desired position as so --> 'row col'\n");
-    console.log("-".repeat(process.stdout.columns));
+  async play(): Promise<void> {
+    this.displayIntro();
     for (let i = 0; i < 9; i++) {
       this.grid.printGrid();
       try {
         if (this.playerTurn === "X") {
           this.xTurn(...(await this.getInput()));
-          if (this.checkWin(this.playerXCoords, this.winCoordinates)) {
+          if (this.checkWin(this.playerXCoords, this.winningCoordinates)) {
             this.displayWin('X');
             break;
           }
         } else if (this.playerTurn === "O") {
           this.oTurn(...await this.getInput());
-          if (this.checkWin(this.playerOCoords, this.winCoordinates)) {
+          if (this.checkWin(this.playerOCoords, this.winningCoordinates)) {
             this.displayWin('O');
             break;
           }
@@ -98,7 +93,7 @@ export class Game {
         i--;
       }
     }
-    if (this.grid.checkFullGrid()) {
+    if (this.grid.isGridFull()) {
       this.displayTie();
     }
 
@@ -119,15 +114,7 @@ export class Game {
               col >= 0 &&
               col <= 2) {
             resolve([row, col]); // Resolves when valid input is provided
-          }
-          // else if (this.grid.gridItems[row][col].isValid() !== true) {
-          //   reject(
-          //     new Error(
-          //       "Cell is already occupied. Please choose another location."
-          //     )
-          //   );
-          // }
-          else {
+          } else {
             reject(
               new Error(
                 "Invalid input. Please enter two numbers separated by a space."
@@ -139,28 +126,28 @@ export class Game {
     });
   }
 
-  close() {
+  close(): void {
     this.rl.close(); // Explicitly close the readline interface
   }
 
-  xTurn(row: number, col: number) {
+  xTurn(row: number, col: number): void {
     if (this.grid.gridItems[row][col].isValid()) {
       this.grid.gridItems[row][col].value = "X";
       this.playerXCoords.push([row, col]);
       this.playerTurn = "O";
     } else {
-      console.error("\nCell is already occupied. Please choose another location.\n");
+      console.error("\nCell is already occupied. Please choose another location.");
     }
   }
 
-  oTurn(row: number, col: number) {
+  oTurn(row: number, col: number): void {
     if (this.grid.gridItems[row][col].isValid()) {
       this.grid.gridItems[row][col].value = "O";
       this.playerOCoords.push([row, col]);
       this.playerTurn = "X";
     } else {
       console.error(
-        "\nCell is already occupied. Please choose another location.\n"
+        "\nCell is already occupied. Please choose another location."
       );
     }
   }
@@ -176,12 +163,18 @@ export class Game {
     );
   }
 
-
-  displayWin(winner?: CellValueType) {
-      console.log("\x1b[32m", `\n${winner} has won the game!`);
+  displayIntro() {
+    console.log("A new Tic-Tac-Toe game has begun!\n");
+    this.grid.printDemoGrid();
+    console.log("\nAs the board seen above, each square has a 2 digits defining it's position. \n\nWhen it is your turn, enter your desired position as so --> 'row col'\n");
+    console.log("-".repeat(process.stdout.columns));
   }
 
-  displayTie() {
+  displayWin(winner?: CellValueType): void {
+    console.log("\x1b[32m", `\n${winner} has won the game!`);
+  }
+
+  displayTie(): void {
     console.log("\x1b[33m", "\nGame is a tie.");
   }
 }
