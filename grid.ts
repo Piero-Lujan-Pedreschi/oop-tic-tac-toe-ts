@@ -53,7 +53,7 @@ export class Grid {
     for (let row: number = 0; row < this.size; row++) {
       // Generate each row's text as `grid[row][col]`
       const rowText = this.gridItems[row]
-        .map((_, col: number) => `grid[${row}][${col}]`)
+        .map((_, col: number) => `${row} ${col}`)
         .join(" | ");
       console.log(rowText);
 
